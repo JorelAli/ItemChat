@@ -59,7 +59,7 @@ public class Main extends JavaPlugin implements Listener {
 					String[] rawMessageArr = rawMessage.split("\\[item\\]");
 					
 					boolean appendItemAtEnd = false;
-					if(countOccurances(rawMessage, "[item]") > 1) {
+					if(countOccurances(rawMessage, "[item]") > 1 && rawMessage.endsWith("[item]")) {
 						appendItemAtEnd = true;
 					}
 					

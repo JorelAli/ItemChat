@@ -18,6 +18,9 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
 	
+	/*
+	 * Load the chat event
+	 */
 	@Override
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
@@ -59,7 +62,7 @@ public class Main extends JavaPlugin implements Listener {
 					String[] rawMessageArr = rawMessage.split("\\[item\\]");
 					
 					boolean appendItemAtEnd = false;
-					if(countOccurances(rawMessage, "[item]") > 1 && rawMessage.endsWith("[item]")) {
+					if(countOccurances(rawMessage) > 1 && rawMessage.endsWith("[item]")) {
 						appendItemAtEnd = true;
 					}
 					
@@ -92,10 +95,10 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}	
 	
-	private int countOccurances(String str, String subStr) {
+	private int countOccurances(String str) {
 		int count = 0;
-		while (str.indexOf(subStr) > -1){
-		    str = str.replaceFirst(subStr, "");
+		while (str.indexOf("[item]") > -1){
+		    str = str.replaceFirst("\\[item\\]", "");
 		    count++;
 		}
 		return count;

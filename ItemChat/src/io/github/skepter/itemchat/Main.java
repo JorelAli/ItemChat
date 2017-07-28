@@ -5,6 +5,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -18,11 +19,9 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
 	
-	/*
-	 * Load the chat event
-	 */
 	@Override
 	public void onEnable() {
+		//load chat event. nothing else needed here.
 		getServer().getPluginManager().registerEvents(this, this);
 	}
 	
@@ -31,18 +30,20 @@ public class Main extends JavaPlugin implements Listener {
 	public void onChat(AsyncPlayerChatEvent event) {
 		if (event.getMessage().contains("[item]")) {
 			event.setCancelled(true);
+			//Prepare to handle the event synchronously
 			Bukkit.getScheduler().runTask(this, new Runnable() {
 
 				@Override
 				public void run() {
 					ItemStack is = event.getPlayer().getInventory().getItemInMainHand();
 					
+					//Air can't be said in chat since it's not technically an item
 					if(is.getType().equals(Material.AIR)) {
 						event.getPlayer().sendMessage(ChatColor.RED + "You gotta hold an item in your hand to say [item], silly!");
 						return;
 					}
 					
-					
+					//Get the name using reflection
 					String displayName = getItemName(is);
 					
 					//Get name using old method if displayName fails
@@ -57,20 +58,42 @@ public class Main extends JavaPlugin implements Listener {
 						}
 					}
 					
+					//get the raw message, replacing player's name and message to fit the formatting
 					String rawMessage = event.getFormat().replace("%1$s", event.getPlayer().getName()).replace("%2$s", event.getMessage());
 					
+					//converts it to an array
 					String[] rawMessageArr = rawMessage.split("\\[item\\]");
 					
+					/*
+					 * It won't display more than three [item] if they end with [item] more than twice.
+					 * e.g:
+					 * [item][item] - this works
+					 * [item][item][item] - this is replaced with [item][item]
+					 * 
+					 * blah [item][item][item] - replaced with blah [item][item]
+					 * blah [item][item][item]. - works, since it doesn't end with [item]
+					 * blah [item][item].[item] - works, since it doesn't end with two [item]'s
+					 */
+					
+					//Adds [item] at the end if there's more than 1 occurance (and it's not at the end)
+					//Quick fix for some bug
 					boolean appendItemAtEnd = false;
 					if(countOccurances(rawMessage) > 1 && rawMessage.endsWith("[item]")) {
 						appendItemAtEnd = true;
 					}
 					
+					//Builder to recreate the chat message
 					TextComponent builder = new TextComponent();
+					
+					//temporary color (see getChatColorFromTrawl below)
 					ChatColor tempChatColor = ChatColor.RESET;
+					
 					for (int i = 0; i < rawMessageArr.length; i++) {
+						//Get the text part before [item]
 						String messagePart = rawMessageArr[i];
 						TextComponent messagePartComponent = new TextComponent(messagePart);
+						
+						//Add the tempColor
 						messagePartComponent.setColor(tempChatColor);
 						builder.addExtra(messagePartComponent);
 						
@@ -79,22 +102,27 @@ public class Main extends JavaPlugin implements Listener {
 							builder.addExtra(getItemTextComponent(displayName, is));
 						}
 						
-						//trawl back through message to find first & chatcolor and apply it if necessary
+						//trawl back through message to find the latest chatcolor
 						tempChatColor = getChatColorFromTrawl(rawMessage, i);
 					}
 					
+					//add [item] to the end if necessary
 					if(appendItemAtEnd) {
 						builder.addExtra(getItemTextComponent(displayName, is));
 					}
 					
-					Bukkit.spigot().broadcast(builder);
-					
+					//Broadcast the message
+					for(Player target : event.getRecipients()) {
+						target.spigot().sendMessage(builder);
+					}
 				}
-
 			});
 		}
 	}	
 	
+	/**
+	 * Counts the occurances of [item] in a string
+	 */
 	private int countOccurances(String str) {
 		int count = 0;
 		while (str.indexOf("[item]") > -1){
@@ -104,6 +132,13 @@ public class Main extends JavaPlugin implements Listener {
 		return count;
 	}
 	
+	/**
+	 * Looks back through the message to find the previous chatcolor used to maintain
+	 * continuity through item formatting
+	 * 
+	 * for example:
+	 * &cblah [item] blah - makes the second blah also have red text
+	 */
 	private ChatColor getChatColorFromTrawl(String rawMessage, int currentIndex) {
 		int stringIndex = rawMessage.indexOf("[item]", rawMessage.indexOf("[item]") + currentIndex);
 		for(int i = stringIndex; i >= 0; i--) {
@@ -114,6 +149,11 @@ public class Main extends JavaPlugin implements Listener {
 		return ChatColor.RESET;
 	}
 	
+	/** 
+	 * Gets the chatcolor of a character. I'm sure this already works with ChatColor.getChar(), but I wanna be certain
+	 * @param c the character to get the chatcolor from
+	 * @return a ChatColor from the respective character
+	 */
 	private ChatColor getColor(char c) {
 		switch(c) {
 			case '0':
@@ -153,6 +193,10 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}
 	
+	/**
+	 * Creates a text component for a specific item. Puts blue [ ] brackets around the item and adds
+	 * a hover event to the main item inside.
+	 */
 	private TextComponent getItemTextComponent(String displayName, ItemStack is) {
 		
 		TextComponent header = new TextComponent("[");
@@ -171,9 +215,13 @@ public class Main extends JavaPlugin implements Listener {
 		return header;
 	}
 
+	/**
+	 * Gets the item name from an item using reflection
+	 * @param is the itemstack to get the name from
+	 * @return the Minecraft "human friendly" name of an item
+	 */
 	private String getItemName(ItemStack is) {
 		try {
-			
 			Object nmsCopy = ReflectionUtil.getOBCClass("inventory.CraftItemStack").getDeclaredMethod("asNMSCopy", ItemStack.class).invoke(null, is);
 			return String.valueOf(nmsCopy.getClass().getDeclaredMethod("getName").invoke(nmsCopy));
 		} catch (Exception e) {
@@ -183,11 +231,12 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	/**
+	 * Resource found from https://www.spigotmc.org/threads/tut-item-tooltips-with-the-chatcomponent-api.65964/
+	 * 
 	 * Converts an {@link org.bukkit.inventory.ItemStack} to a Json string for
 	 * sending with {@link net.md_5.bungee.api.chat.BaseComponent}'s.
 	 *
-	 * @param itemStack
-	 *            the item to convert
+	 * @param itemStack the item to convert
 	 * @return the Json string representation of the item
 	 */
 	private String convertItemStackToJson(ItemStack itemStack) {

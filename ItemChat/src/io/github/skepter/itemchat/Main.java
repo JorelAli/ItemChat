@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.ItemStack;
@@ -25,8 +26,8 @@ public class Main extends JavaPlugin implements Listener {
 		getServer().getPluginManager().registerEvents(this, this);
 	}
 	
-
-	@EventHandler
+	//Override Skript or any other chat handlers
+	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onChat(AsyncPlayerChatEvent event) {
 		if (event.getMessage().contains("[item]")) {
 			event.setCancelled(true);

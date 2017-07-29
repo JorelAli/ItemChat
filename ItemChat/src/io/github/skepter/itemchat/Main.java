@@ -86,7 +86,7 @@ public class Main extends JavaPlugin implements Listener {
 					TextComponent builder = new TextComponent();
 					
 					//temporary color (see getChatColorFromTrawl below)
-					ChatColor tempChatColor = ChatColor.RESET;
+					ChatColor tempChatColor = getChatColorFromTrawl(rawMessage, 0);
 					
 					for (int i = 0; i < rawMessageArr.length; i++) {
 						//Get the text part before [item]

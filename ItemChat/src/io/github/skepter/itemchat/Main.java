@@ -60,7 +60,8 @@ public class Main extends JavaPlugin implements Listener {
 					}
 					
 					//get the raw message, replacing player's name and message to fit the formatting
-					String rawMessage = event.getFormat().replace("%1$s", event.getPlayer().getName()).replace("%2$s", event.getMessage());
+					String playerName = event.getPlayer().getDisplayName() == null ? event.getPlayer().getName() : event.getPlayer().getDisplayName();
+					String rawMessage = event.getFormat().replace("%1$s", playerName).replace("%2$s", event.getMessage());
 					
 					//converts it to an array
 					String[] rawMessageArr = rawMessage.split("\\[item\\]");

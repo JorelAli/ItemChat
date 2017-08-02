@@ -1,6 +1,6 @@
 name: ItemChat
 main: io.github.skepter.itemchat.Main
-version: 1.1
+version: 1.2
 description: Adds [item] to player chat
 author: Skepter
 website: http://skepter.github.io/
